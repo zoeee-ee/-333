@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <title>唐朝皇帝庙号顺序填写</title>
+    <style>
+        .square {
+            width: 100px;
+            height: 100px;
+            border: 1px solid #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .square:hover {
+            background-color: #e0e0e0;
+        }
+
+        .dragging {
+            opacity: 0.5;
+        }
+
+        .correct {
+            color: green;
+        }
+
+        .wrong {
+            color: red;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 p-8">
+    <h1 class="text-3xl font-bold text-center mb-8">唐朝皇帝庙号顺序填写</h1>
+    <div id="target" class="flex flex-wrap justify-center mb-8"></div>
+    <div id="source" class="flex flex-wrap justify-center"></div>
+    <button id="check" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mx-auto block hidden"
+        onclick="checkOrder()">检查顺序</button>
+
+    <script>
+        const templeNames = [
+            "高祖", "太宗", "高宗", "中宗", "睿宗", "玄宗", "肃宗", "代宗", "德宗",
+            "顺宗", "宪宗", "穆宗", "敬宗", "文宗", "武宗", "宣宗", "懿宗", "僖宗", "昭宗", "哀帝"
+        ];
+        const shuffledNames = [...templeNames].sort(() => Math.random() - 0.5);
+        const targetDiv = document.getElementById('target');
+        const sourceDiv = document.getElementById('source');
+        const checkButton = document.getElementById('check');
+
+        shuffledNames.forEach(name => {
+            const square = document.createElement('div');
+            square.classList.add('square');
+            square.textContent = name;
+            square.addEventListener('click', () => {
+                const emptyTarget = Array.from(targetDiv.children).find(sq => sq.textContent === '');
+                if (emptyTarget) {
+                    emptyTarget.textContent = name;
+                    square.remove();
+                    checkAllFilled();
+                }
+            });
+            sourceDiv.appendChild(square);
+        });
+
+        for (let i = 0; i < templeNames.length; i++) {
+            const targetSquare = document.createElement('div');
+            targetSquare.classList.add('square');
+            targetSquare.draggable = true;
+            targetSquare.addEventListener('dragstart', dragStart);
+            targetSquare.addEventListener('dragend', dragEnd);
+            targetSquare.addEventListener('dragover', dragOver);
+            targetSquare.addEventListener('dragenter', dragEnter);
+            targetSquare.addEventListener('dragleave', dragLeave);
+            targetSquare.addEventListener('drop', drop);
+            targetDiv.appendChild(targetSquare);
+        }
+
+        function dragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.textContent);
+            setTimeout(() => e.target.classList.add('dragging'), 0);
+        }
+
+        function dragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+
+        function dragOver(e) {
+            e.preventDefault();
+        }
+
+        function dragEnter(e) {
+            e.preventDefault();
+            e.target.style.backgroundColor = '#f0f0f0';
+        }
+
+        function dragLeave(e) {
+            e.target.style.backgroundColor = '';
+        }
+
+        function drop(e) {
+            e.preventDefault();
+            e.target.style.backgroundColor = '';
+            const data = e.dataTransfer.getData('text/plain');
+            const draggedSquare = Array.from(targetDiv.children).find(sq => sq.textContent === data);
+            const temp = e.target.textContent;
+            e.target.textContent = data;
+            draggedSquare.textContent = temp;
+            checkAllFilled();
+        }
+
+        function checkAllFilled() {
+            const targetSquares = targetDiv.querySelectorAll('.square');
+            let allFilled = true;
+            targetSquares.forEach(square => {
+                if (square.textContent === '') {
+                    allFilled = false;
+                }
+            });
+            if (allFilled) {
+                checkButton.classList.remove('hidden');
+            } else {
+                checkButton.classList.add('hidden');
+            }
+        }
+
+        function checkOrder() {
+            const targetSquares = targetDiv.querySelectorAll('.square');
+            let score = 0;
+            let resultMessage = '你的排序结果及正误判断：\n';
+
+            targetSquares.forEach((square, index) => {
+                const userInput = square.textContent;
+                const correctName = templeNames[index];
+                if (userInput === correctName) {
+                    resultMessage += `${correctName} <span class="correct">✔</span>\n`;
+                    score++;
+                } else {
+                    resultMessage += `${userInput} <span class="wrong">× (正确: ${correctName})</span>\n`;
+                }
+            });
+
+            resultMessage += `得分：${score}/20`;
+
+            // 创建一个模态框显示结果
+            const modal = document.createElement('div');
+            modal.classList.add('fixed', 'inset-0', 'bg-gray-500', 'bg-opacity-75', 'flex', 'items-center', 'justify-center', 'z-50');
+
+            const modalContent = document.createElement('div');
+            modalContent.classList.add('bg-white', 'p-8', 'rounded', 'shadow-lg');
+
+            const resultTitle = document.createElement('h2');
+            resultTitle.classList.add('text-2xl', 'font-bold', 'mb-4');
+            resultTitle.textContent = '结果判断';
+
+            const resultText = document.createElement('pre');
+            resultText.classList.add('text-lg');
+            resultText.innerHTML = resultMessage.replace(/\n/g, '<br>');
+
+            const closeButton = document.createElement('button');
+            closeButton.classList.add('bg-blue-500', 'hover:bg-blue-700', 'text-white', 'font-bold', 'py-2', 'px-4', 'rounded', 'mt-4');
+            closeButton.textContent = '关闭';
+            closeButton.addEventListener('click', () => {
+                modal.remove();
+            });
+
+            modalContent.appendChild(resultTitle);
+            modalContent.appendChild(resultText);
+            modalContent.appendChild(closeButton);
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+        }
+    </script>
+</body>
+
+</html>    
